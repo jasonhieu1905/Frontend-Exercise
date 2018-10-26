@@ -7,15 +7,38 @@ import MRT_JSON from './../routing/mrt.json';
 // This is only a placeholder to demonstrate the Google Maps API.
 // You should reorganize and improve it.
 import MRT_DATA from './../routing/mrt.json';
-
+import LineInfo from './Line/Line';
+import RouteDetail from './RouteDetail/RouteDetail';
 const ORIGIN_KEY = 'origin';
 const DESTINATION_KEY = 'destination';
-
 
 class App extends Component {
 
     state = {
-       places: null
+        places: null,
+        results: [
+            {
+                steps: [
+                    { type: "walk", from: "origin", to: "botanic_gardens" },
+                    { type: "ride", line: "CC", from: "botanic_gardens", to: "buona_vista" },
+                    { type: "change", station: "buona_vista", from: "CC", to: "EW" },
+                    { type: "ride", line: "EW", from: "buona_vista", to: "bugis" },
+                    { type: "walk", from: "bugis", to: "destination" }
+                ],
+                show: false
+            },
+            {
+                steps: [
+                    { type: "walk", from: "origin", to: "botanic_gardens" },
+                    { type: "ride", line: "CC", from: "botanic_gardens", to: "buona_vista" },
+                    { type: "change", station: "buona_vista", from: "CC", to: "EW" },
+                    { type: "ride", line: "EW", from: "buona_vista", to: "bugis" },
+                    { type: "walk", from: "bugis", to: "destination" }
+                ],
+                show: false
+            }
+        ]
+        
     }
 
     componentDidMount() {
@@ -31,22 +54,22 @@ class App extends Component {
                 const _places = originSearch.getPlaces();
                 const location = _places[0].geometry.location.toJSON();
                 const places = this.state.places;
-                if(id == ORIGIN_KEY) {
+                if (id == ORIGIN_KEY) {
                     this.setState({
                         places: {
                             ...places,
                             origin: location
                         }
-                    },() => {console.log(this.state)});
-                } else if(id == DESTINATION_KEY) {
+                    }, () => { console.log(this.state) });
+                } else if (id == DESTINATION_KEY) {
                     this.setState({
                         places: {
                             ...places,
                             destination: location
                         }
-                    },() => {console.log(this.state)});
+                    }, () => { console.log(this.state) });
                 }
-                
+
             });
         }, 100);
     }
@@ -65,11 +88,44 @@ class App extends Component {
         //         return nearestMRTDestination.result[0].station.line[key]
         //     })
         // }
-        
+
         console.log(MRT_DATA);
     }
 
+    getRoutePath = (steps) => {
+        let points = [];
+        let stepsWithRide = steps.filter(item => item.type == 'ride');
+        for (let i = 0; i < stepsWithRide.length; i++) {
+            points.push(<LineInfo line={stepsWithRide[i].line} />)
+            if (i != stepsWithRide.length - 1) {
+                points.push(<span className="dot"></span>);
+            }
+        }
+        return points;
+    }
+
+    toggleRouteDetail = (index) => {
+        const results = this.state.results;
+        results[index].show = !results[index].show;
+        debugger;
+        this.setState({
+            results: [
+                ...results,
+            ]
+
+        })
+    }
+
     render() {
+
+        const results = this.state.results.map((item, index) => {
+            let routePath = this.getRoutePath(item.steps);
+            return (<div  className="route" onClick={() => this.toggleRouteDetail(index)}>
+                {routePath}
+                <RouteDetail show={this.state.results[index].show} key={index} steps={item.steps} index={index}/>
+            </div>)
+        });
+
         return (
             <div id='app' className="container">
                 <Grid>
@@ -93,17 +149,18 @@ class App extends Component {
                         </FormGroup>
                         <FormGroup>
                             <Col>
-                                <Button style={{ float: 'right' }} 
+                                <Button style={{ float: 'right' }}
                                     onClick={this.findMRTRoutes}
-                                    >Search</Button>
+                                >Search</Button>
                             </Col>
                         </FormGroup>
                     </form>
 
-                    <h3 style={{clear: 'both'}}>Suggested routes</h3>
+                    <h3 style={{ clear: 'both' }}>Suggested routes</h3>
+                    <div id='results'>
+                        {results}
+                    </div>
                 </Grid>
-
-                <div id='results' />
             </div >
         )
     }
